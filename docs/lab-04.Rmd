@@ -1,7 +1,7 @@
 ---
 title: "Geography 176A"
 author: "[Stephanie Hurtado] (https://github.com/shurtadogonzalez/shurtadogonzalez.github.io)"
-subtitle: 'Lab 03: Distances and the Border Zone'
+subtitle: 'Lab 04: Tesselations, Point-in-Polygon'
 output:
   html_document:
     theme: journal
@@ -172,7 +172,7 @@ tess_summary = bind_rows(
   tess_area(conus, "originial"))
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 
 #2.4:Knitr Table
 
@@ -184,7 +184,7 @@ knitr::kable(tess_summary, caption = "Tessellations Coverage",
 ```
 
 
-#2.5: Comments on the traits of each tessellation
+2.5: Comments on the traits of each tessellation
 
 It can be seen that the number of features from largest to smallest goes in the following order: hexagonal, square, original, voroni and triangulation. When each of these features are compared to their total area, a pattern emerges. The large a tessellation's number of features is the smaller their total area will be. When the total area for a tessellation is smaller in compared to the original tessellation, it is possible for it to be missing point-in-polygon features that can affect results and therefore analysis.
 
@@ -290,6 +290,8 @@ recreation_tess = point_in_polygon3(r_dams, vori, "id")
 fire_pro_tess = point_in_polygon3(p_dams, vori, "id")
 
 fish_wildlife_tess = point_in_polygon3(nid, vori, "id")
+
+
 ```
 
 ```{r}
@@ -320,7 +322,7 @@ plot_pip(fish_wildlife_tess, "Fish and Wildlife Dams")+
 #4.3
 Comment of geographic distribution of dams you found. Does it make sense? How might the tessellation you chose impact your findings? How does the distribution of dams coincide with other geographic factors such as river systems, climate, ect?
 
-
+From the dam purposes that I choose, most of their distribution is understandable given the location in which they are seen. For example, flood control dams are mostly seen within counties close to the Mississippi River. Also, based on the bar graph presented in the lab instruction, it was seen that Recreational Dams were the largest purpose for a dam in the US. Even though the counties look smaller than those to the west of the country, it is possible to see their distribution along with the dam count within a given county.
 
 Extra Credit 
 ```{r}
