@@ -1,0 +1,351 @@
+---
+title: "Geography 176A"
+author: "[Stephanie Hurtado] (https://github.com/shurtadogonzalez/shurtadogonzalez.github.io)"
+subtitle: 'Lab 03: Distances and the Border Zone'
+output:
+  html_document:
+    theme: journal
+---
+
+```{r}
+library(tidyverse)
+library(sf)
+library(units)
+library(USAboundaries)
+library(rnaturalearthdata)
+library(knitr)
+library(ggrepel)
+library(gghighlight)
+library(ggthemes)
+library(ggplot2)
+library(leaflet)
+library(readxl)
+```
+
+
+#Question 1
+
+```{r}
+
+#1.1
+usa <- USAboundaries::us_counties()
+
+conus <- usa %>%
+  filter(!state_name %in% c("Alaska", "Hawaii", "Puerto Rico")) %>%
+  st_transform(5070)
+```
+
+```{r message=FALSE, warning=FALSE}
+#1.2
+
+cen_conus = conus %>%
+  st_centroid() %>%
+  st_combine() %>%
+  st_cast("MULTIPOINT")
+```
+
+```{r}
+#1.3
+vori = cen_conus %>%
+  st_voronoi() %>%
+  st_cast() %>%
+  st_as_sf() %>%
+  mutate(id = 1:n())
+
+
+tri = cen_conus %>%
+  st_triangulate() %>%
+  st_cast() %>%
+  st_as_sf() %>%
+  mutate(id = 1:n())
+
+
+grid_cov = st_make_grid(cen_conus, n = c(70, 50), square = TRUE) %>%
+  st_as_sf() %>%
+  mutate(id = 1:n())
+
+hex_cov = st_make_grid(cen_conus, n= c(70,50), square = FALSE) %>%
+  st_as_sf() %>%
+  mutate(id = 1:n())
+```
+
+```{r}
+#1.6
+plot_tess = function(data, title){
+  ggplot() +
+    geom_sf(data = data, fill = "white", col = "navy", size = .2) +
+    theme_void() +
+    labs(title = title, caption = paste("This tesselation has:", nrow(data), "tiles" )) +
+    theme(plot.title = element_text(hjust = .5, color =  "navy", face = "bold"))
+}
+```
+
+```{r}
+#1.4
+vori = st_intersection(vori, st_union(conus))
+plot_tess(vori, "Voroni Coverage") +
+  geom_sf(data = conus, col = "darkred", size = .2)
+
+
+tri = st_intersection(tri, st_union(conus))
+plot_tess(tri, "Triangular Coverage") +
+  geom_sf(data = conus, col = "darkred", size = .3)
+
+grid_cov = st_intersection(grid_cov, st_union(conus))
+plot_tess(grid_cov, "Square Coverage") +
+  geom_sf(data = conus, col = "darkred", size = .3)
+
+
+grid_cov = st_intersection(hex_cov, st_union(conus))
+plot_tess(hex_cov, "Hexegonal Coverage") +
+  geom_sf(data = conus, col = "darkred", size = .3)
+
+```
+
+```{r message=FALSE, warning=FALSE}
+#1.5
+
+#rmapshaper::ms_simplify
+
+#simp = ms_simplify(conus, keep= 0.4)
+
+#mapview::npts
+
+#mapview::npts(conus)
+#51976
+
+#mapview::npts(simp)
+#33485
+```
+
+
+
+```{r}
+#1.7
+
+plot_tess(vori, "Voroni Coverage")
+
+plot_tess(tri, "Triangular Coverage")
+
+plot_tess(grid_cov, "Square Coverage")
+
+plot_tess(hex_cov, "Hexegonal Coverage")
+
+plot_tess(conus, "Original Coverage")
+
+```
+
+
+#Question 2
+```{r}
+#2.1
+tess_area <- function(data, title){
+  areas= drop_units(set_units(st_area(data), "km2"))
+  data.frame(tesselation= title,
+             mean_sq = mean(areas),
+             total_features = length(areas),
+             stand_dev = sd(areas),
+             total_area =sum(areas))
+}
+
+
+```
+
+```{r}
+#2.2
+
+tess_area(vori, "Voroni Coverage")
+tess_area(tri, "Triangular Coverage")
+tess_area(grid_cov, "Square Coverage")
+tess_area(hex_cov, "Hexagonal Coverage")
+tess_area(conus, "Original Coverage")
+```
+
+```{r}
+#2.3: Summarize 5 Coverage 
+
+tess_summary = bind_rows(
+  tess_area(tri ,"triangulation"),
+  tess_area(vori, "voroni"),
+  tess_area(grid_cov, "square"),
+  tess_area(hex_cov, "hexagonal"),
+  tess_area(conus, "originial"))
+```
+
+```{r}
+
+#2.4:Knitr Table
+
+
+knitr::kable(tess_summary, caption = "Tessellations Coverage",
+             col.names = c("Tessellation", "Number of Features", "Mean Area","Standard Deviation", "Total Area"),
+             format.args = list(big.mark = ",")) %>%
+  kableExtra::kable_styling("striped", full_width = TRUE, font_size = NULL)
+```
+
+
+#2.5: Comments on the traits of each tessellation
+
+It can be seen that the number of features from largest to smallest goes in the following order: hexagonal, square, original, voroni and triangulation. When each of these features are compared to their total area, a pattern emerges. The large a tessellation's number of features is the smaller their total area will be. When the total area for a tessellation is smaller in compared to the original tessellation, it is possible for it to be missing point-in-polygon features that can affect results and therefore analysis.
+
+
+
+
+# Question 3 
+```{r message=FALSE, warning=FALSE}
+#3.1
+nid <- read_excel("../data/NID2019_U.xlsx") %>% 
+  filter(!is.na(LONGITUDE),!is.na(LATITUDE)) %>% 
+  st_as_sf(coords = c("LONGITUDE", "LATITUDE"), crs= 4326) %>% 
+  st_transform(5070)
+```
+
+```{r}
+#3.2
+
+point_in_polygon3 = function(points, polygon, group){
+  st_join(polygon, points) %>% 
+    st_drop_geometry() %>% 
+    count(get(group)) %>% 
+    setNames(c(group, "n")) %>%
+    left_join(polygon, by = group) %>% 
+    st_as_sf() 
+}
+```
+
+```{r}
+#3.3
+
+vor_jd = point_in_polygon3(nid, vori, "id")
+tri_jd =point_in_polygon3(nid, tri, "id")
+square_jd = point_in_polygon3(nid, grid_cov, "id")
+hex_jd = point_in_polygon3(nid, hex_cov, "id")
+og_jd = point_in_polygon3(nid, conus, "geoid")
+
+```
+
+```{r}
+#3.4
+
+plot_pip = function(data, title){
+  ggplot() + 
+    geom_sf(data = data, aes(fill = n), col = NA, size = .2) + 
+    scale_fill_viridis_c() + 
+    theme_void() +
+    labs(title = title, caption = paste("This Coverage has:", sum(data$n), "Dams" )) +
+    theme(plot.title = element_text(hjust = .5, color =  "navy", face = "bold"))
+}
+```
+
+```{r}
+#3.5
+plot_pip(vor_jd, "Voroni Pip")
+plot_pip(tri_jd, "Triangular Pip")
+plot_pip(square_jd, "Square Pip")
+plot_pip(hex_jd, "Hexagonal Pip")
+plot_pip(og_jd, "Original Pip")
+```
+
+#3.6
+Comment on the influence of the tessellated surface in the visualization of point counts. How does this related to the MAUP problem. Moving forward you will only use one tessellation, which will you chose and why?
+
+Depending on the tessellation surface it will either make it easier or harder to get a visualization of the point counts in terms of the dams in the US. For this reason I choose to use the Voroni tessellation from here on forward. The Voroni feature help you visually see where there is a higher coverage of dams within US counties than the rest of the tessellations.
+
+
+
+# Question 4
+```{r}
+#4.1
+
+#I, C, S, R, P, F
+#describe why you chose them
+
+i_dams = nid %>%
+  filter(grepl("I", PURPOSES) == TRUE)
+
+c_dams = nid %>%
+  filter(grepl("C", PURPOSES) == TRUE)
+
+s_dams = nid %>%
+  filter(grepl("S", PURPOSES) == TRUE)
+
+r_dams = nid %>%
+  filter(grepl("R", PURPOSES) == TRUE)
+
+p_dams = nid %>%
+  filter(grepl("P", PURPOSES) == TRUE)
+
+f_dams = nid %>%
+  filter(grepl("F", PURPOSES) == TRUE)
+
+
+irrigation_tess = point_in_polygon3(i_dams, vori, "id")
+
+flood_control_tess = vor_jd = point_in_polygon3(c_dams, vori, "id")
+
+water_supply_tess = point_in_polygon3(s_dams, vori, "id")
+
+recreation_tess = point_in_polygon3(r_dams, vori, "id")
+
+fire_pro_tess = point_in_polygon3(p_dams, vori, "id")
+
+fish_wildlife_tess = point_in_polygon3(nid, vori, "id")
+```
+
+```{r}
+#4.2
+
+plot_pip(irrigation_tess, "Irrigation Dams")+
+ gghighlight(n > (mean(n)+ sd(n)))
+
+plot_pip(flood_control_tess, "Flood Control Dams")+
+ gghighlight(n > (mean(n)+ sd(n)))
+
+plot_pip(water_supply_tess, "Water Supply Dams")+
+ gghighlight(n > (mean(n)+ sd(n)))
+
+plot_pip(recreation_tess, "Recreational Dams")+
+ gghighlight(n > (mean(n)+ sd(n)))
+
+plot_pip(fire_pro_tess, "Fire Protection Dams")+
+ gghighlight(n > (mean(n)+ sd(n)))
+
+plot_pip(fish_wildlife_tess, "Fish and Wildlife Dams")+
+ gghighlight(n > (mean(n)+ sd(n)))
+
+
+```
+
+
+#4.3
+Comment of geographic distribution of dams you found. Does it make sense? How might the tessellation you chose impact your findings? How does the distribution of dams coincide with other geographic factors such as river systems, climate, ect?
+
+
+
+Extra Credit 
+```{r}
+
+miss= read_sf("../data/majorrivers_0_0") %>% 
+  filter(NAME == "Mississippi")
+
+miss_leaf= nid %>% 
+  filter(HAZARD == "H") %>% 
+  group_by(STATE) %>% 
+  select("DAM_NAME", "NID_STORAGE", "PURPOSES", "YEAR_COMPLETED") %>% 
+  slice_max(NID_STORAGE) %>% 
+  st_transform(4326)
+
+leaflet() %>% 
+  addProviderTiles(providers$CartoDB) %>% 
+  addCircles(data = miss_leaf, 
+             fillColor  = "red",
+             color = NA,
+             fillOpacity = 1,
+             radius = (miss_leaf$NID_STORAGE / 1500000)) %>% 
+  addPolylines(data = miss) 
+  
+  
+
+```
+
+
