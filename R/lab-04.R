@@ -1,14 +1,17 @@
-install.packages("rmapshaper")
+library(tidyverse)
 library(rmapshaper)
-
-install.packages("measurements")
 library(measurements)
-
-install.packages("units")
 library(units)
-
 library(sf)
 library(readxl)
+library(knitr)
+library(ggrepel)
+library(leaflet)
+library(gghighlight)
+library(rnaturalearthdata)
+library(ggthemes)
+
+
 #Question 1
 
 #1.1
@@ -225,13 +228,70 @@ plot_pip(og_jd, "Original Pip")
 # Question 4
 
 #4.1
+unique(dams2$PURPOSES) %>% length
+
+dam_freq <- strsplit(nid$PURPOSES, split = "") %>%
+  unlist() %>% 
+  table() %>% 
+  as.data.frame() %>% 
+  setNames(c("abbr", "count")) %>% 
+  left_join(nid_classifier) %>% 
+  mutate(lab = paste0(purpose, "\n(", abbr, ")"))
 
 
+#I, C, S, R, P, F
+#describe why you chose them
+
+i_dams = nid %>%
+  filter(grepl("I", PURPOSES) == TRUE)
+
+c_dams = nid %>%
+  filter(grepl("C", PURPOSES) == TRUE)
+
+s_dams = nid %>%
+  filter(grepl("S", PURPOSES) == TRUE)
+
+r_dams = nid %>%
+  filter(grepl("R", PURPOSES) == TRUE)
+
+p_dams = nid %>%
+  filter(grepl("P", PURPOSES) == TRUE)
+
+f_dams = nid %>%
+  filter(grepl("F", PURPOSES) == TRUE)
 
 
+irrigation_tess = point_in_polygon3(i_dams, vori, "id")
+
+flood_control_tess = vor_jd = point_in_polygon3(c_dams, vori, "id")
+
+water_supply_tess = point_in_polygon3(s_dams, vori, "id")
+
+recreation_tess = point_in_polygon3(r_dams, vori, "id")
+
+fire_pro_tess = point_in_polygon3(p_dams, vori, "id")
+
+fish_wildlife_tess = point_in_polygon3(nid, vori, "id")
 
 
+#4.2
 
+irrigation_plot = plot_pip(i_dams, "Irrigation Dams")+
+  gghighlight::gghighlight(n > (mean(n)+ sd(n)))
 
+flood_control_plot= plot_pip(c_dams, "Flood Control Dams")+
+  gghighlight::gghighlight(n > (mean(n)+ sd(n)))
+
+water_supply_plot= plot_pip(s_dams, "Water Supply Dams")+
+  gghighlight::gghighlight(n > (mean(n)+ sd(n)))
+
+recreation_plot= plot_pip(r_dams, "Recreation Dams")+
+  gghighlight::gghighlight(n > (mean(n)+ sd(n)))
+
+fire_pro_plot= plot_pip(p_dams, "Fire Protection Dams")+
+  gghighlight::gghighlight(n > (mean(n)+ sd(n)))
+
+fish_wildlife_plot = plot_pip(f_dams, "Fish and Wildlife Dams")+
+  gghighlight::gghighlight(n > (mean(n)+ sd(n)))
 
 
