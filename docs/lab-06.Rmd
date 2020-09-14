@@ -55,7 +55,7 @@ polygon = osm$osm_polygons %>%
 clip_build = st_intersection(polygon, basin)
 
 railway = clip_build %>% 
-  filter(amenity == "railway")
+  dplyr::filter(amenity == "railway")
 
 streams = osmdata::opq(basin)%>% 
   add_osm_feature(key= 'waterway', value= "stream") %>% 
@@ -67,12 +67,12 @@ clip_streams = st_intersection(line, basin)
 ```
 
 # Terrain Analysis
-```{r eval=FALSE, message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 wbt_hillshade("../data/basin_elev.tif", "../data/basin_hillshade.tif")
 
 hillshade = raster( "../data/basin_hillshade.tif")
 
-plot(hillshade, axes = FALSE, box = FALSE, col= gray.colors(256, alpha = .5), legend = FALSE, main = "Hillshade")
+plot(hillshade, col= gray.colors(256, alpha = .5), legend = FALSE)
 
 plot(basin, add= TRUE, lwd = 2)
 
@@ -81,17 +81,17 @@ plot(clip_streams, add= TRUE, lwd = 2, col = "blue")
 ```
 
 ```{r message=FALSE, warning=FALSE}
-stream_buffer = clip_streams %>% 
+stream_buff = clip_streams %>% 
   st_transform(5070) %>% 
   st_buffer(10) %>% 
   st_transform(4326)
   
-stream_fast = fasterize::fasterize(stream_buffer, new_units) 
+stream_fast = fasterize::fasterize(stream_buff, new_units) 
 
 writeRaster(stream_fast,"../data/stream_raster.tif", overwrite = TRUE)
 ```
 
-```{r eval=FALSE, message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 wbt_breach_depressions("../data/basin_elev.tif", "../data/basin_breach_depressions.tif")
 
 wbt_elevation_above_stream("../data/basin_breach_depressions.tif", "../data/stream_raster.tif",  "../data/hand.tif")
@@ -116,10 +116,10 @@ writeRaster(new_hand,"../data/hand_offset.tif", overwrite = TRUE)
 # 2017 Impact Assessment 
 
 ```{r message=FALSE, warning=FALSE}
-
 hand_offset = raster("../data/hand_offset.tif")
 
 hand_offset[hand_offset > 10.02] = NA
+
 
 plot(hillshade, col= gray.colors(256, alpha = .5), legend = FALSE, axes = FALSE, box = FALSE )
 
@@ -141,7 +141,6 @@ plot(hand_offset, add = TRUE, col = rev(blues9))
 plot(clip_build$geometry, add = TRUE, col = building_cen, pch = 16, cex = .08)
 
 plot(railway, add= TRUE, col= "green", cex = 1, pch = 16)
-
 
 ```
 
