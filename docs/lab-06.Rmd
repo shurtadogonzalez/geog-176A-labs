@@ -1,0 +1,170 @@
+---
+title: "Geography 176A"
+author: "[Stephanie Hurtado](https://github.com/shurtadogonzalez/shurtadogonzalez.github.io)"
+subtitle: 'Lab 06: Flood Risk in Mission Creek: Past, Present, Future'
+output:
+  html_document:
+    theme: journal
+---
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+library(sf)        # vector manipulation
+library(raster)    # raster manipulation
+library(fasterize) # "faster" raster
+library(whitebox)  # terrain analysis
+
+# Data libraries
+library(osmdata)   # OSM API
+library(elevatr)   # Elevation  Web Tiles
+library(measurements)
+library(units)
+library(tidyverse)
+library(mapview)
+library(dplyr)
+library(knitr)
+```
+
+
+# Collecting Data
+```{r}
+
+basin = read_sf("https://labs.waterdata.usgs.gov/api/nldi/linked-data/nwissite/USGS-11119750/basin/")
+
+```
+
+```{r message=FALSE, warning=FALSE}
+elev = elevatr::get_elev_raster(basin, z = 13) %>%
+  crop(basin) %>% 
+  mask(basin)
+ 
+writeRaster(elev, filename =  "../data/basin_elev.tif", overwrite = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+new_units = elev * 3.281
+
+osm = osmdata::opq(basin)%>% 
+  add_osm_feature(key= 'building') %>% 
+  osmdata_sf()
+ 
+polygon = osm$osm_polygons %>% 
+   st_centroid()
+
+clip_build = st_intersection(polygon, basin)
+
+railway = clip_build %>% 
+  filter(amenity == "railway")
+
+streams = osmdata::opq(basin)%>% 
+  add_osm_feature(key= 'waterway', value= "stream") %>% 
+  osmdata_sf()
+
+line = streams$osm_lines 
+
+clip_streams = st_intersection(line, basin)
+```
+
+# Terrain Analysis
+```{r eval=FALSE, message=FALSE, warning=FALSE}
+wbt_hillshade("../data/basin_elev.tif", "../data/basin_hillshade.tif")
+
+hillshade = raster( "../data/basin_hillshade.tif")
+
+plot(hillshade, axes = FALSE, box = FALSE, col= gray.colors(256, alpha = .5), legend = FALSE, main = "Hillshade")
+
+plot(basin, add= TRUE, lwd = 2)
+
+plot(clip_streams, add= TRUE, lwd = 2, col = "blue")
+
+```
+
+```{r message=FALSE, warning=FALSE}
+stream_buffer = clip_streams %>% 
+  st_transform(5070) %>% 
+  st_buffer(10) %>% 
+  st_transform(4326)
+  
+stream_fast = fasterize::fasterize(stream_buffer, new_units) 
+
+writeRaster(stream_fast,"../data/stream_raster.tif", overwrite = TRUE)
+```
+
+```{r eval=FALSE, message=FALSE, warning=FALSE}
+wbt_breach_depressions("../data/basin_elev.tif", "../data/basin_breach_depressions.tif")
+
+wbt_elevation_above_stream("../data/basin_breach_depressions.tif", "../data/stream_raster.tif",  "../data/hand.tif")
+
+```
+
+# Correcting to local reference datum 
+
+```{r message=FALSE, warning=FALSE}
+hand_raster = raster("../data/hand.tif")
+
+stream_raster = raster("../data/stream_raster.tif")
+
+new_hand =  hand_raster + 3.69
+
+new_hand[stream_fast == 1] = 0
+
+writeRaster(new_hand,"../data/hand_offset.tif", overwrite = TRUE)
+
+```
+
+# 2017 Impact Assessment 
+
+```{r message=FALSE, warning=FALSE}
+
+hand_offset = raster("../data/hand_offset.tif")
+
+hand_offset[hand_offset > 10.02] = NA
+
+plot(hillshade, col= gray.colors(256, alpha = .5), legend = FALSE, axes = FALSE, box = FALSE )
+
+plot(hand_offset, add = TRUE, col = rev(blues9))
+
+plot(railway, add = TRUE, col = "green", cex = 1, pch = 16)
+
+```
+
+```{r message=FALSE, warning=FALSE}
+
+building_cen =  ifelse(!is.na(raster::extract(hand_offset, polygon)), "red", "black")
+
+
+plot(hillshade, axes = FALSE, box = FALSE, col= gray.colors(256, alpha = .5), legend = FALSE, main = paste(sum(building_cen == "red"),  "Impacted Buildings"))
+
+plot(hand_offset, add = TRUE, col = rev(blues9))
+
+plot(clip_build$geometry, add = TRUE, col = building_cen, pch = 16, cex = .08)
+
+plot(railway, add= TRUE, col= "green", cex = 1, pch = 16)
+
+
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+# Extra Credit: Flood Inundation Map library
+
+#sb = AOI::aoi_get("Santa Barbara")
+
+#sb_hand = hand_offset %>% 
+  #crop(sb)
+
+#sb_basin = basin %>% 
+  #crop(sb)
+
+#sb_hs = hillshade %>% 
+  #crop(sb)
+
+#gifski::save_gif({
+  #for(i in 0:20) {
+    
+  
+
+
+```
