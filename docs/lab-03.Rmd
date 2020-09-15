@@ -6,7 +6,7 @@ output:
   html_document:
     theme: journal
 ---
-```{r}
+```{r include=FALSE}
 library(tidyverse)
 library(sf)
 library(units)
@@ -18,7 +18,7 @@ library(gghighlight)
 library(ggthemes)
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 data = ("../data/uscities.csv")
 us_cities = read_csv(data)
 ```
@@ -161,7 +161,7 @@ Question 3
 ```{r}
 #3.1: Data
 
-big_cities = cities %>% 
+big_cities = us_cities %>% 
   select(city, state_name, population) %>% 
   slice_max(population, n=10) %>% 
   arrange(-population)
