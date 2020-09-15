@@ -1,37 +1,33 @@
 ---
 title: "Geography 176A"
-author: "[Stephanie Hurtado] (https://github.com/shurtadogonzalez/shurtadogonzalez.github.io)"
+author: "[Stephanie Hurtado](https://github.com/shurtadogonzalez/shurtadogonzalez.github.io)"
 subtitle: 'Lab 03: COVID-19 Pandemic'
 output:
   html_document:
   theme: journal
 ---
 
+```{r, include=FALSE}
 
-install.packages("tidyverse")
 library(tidyverse)
 
-install.packages("knitr")
+
 library(knitr)
 
-install.packages("readxl")
 library(readxl)
 
-install.packages("zoo")
 library(zoo)
 
-install.packages("kableExtra")
 library(kableExtra)
 #installing and reading packages 
+```
 
-
-url = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
+```{r message=FALSE, warning=FALSE}
+url = 'https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv'
 covid = read_csv(url) 
-head(covid)
-#inserting the raw COVID data that is need for the lab 
+```
 
-
-Question 1 
+# Question 1 
 
 ```{r message=TRUE, warning=TRUE}
 
@@ -44,7 +40,7 @@ set_up = covid %>%
   filter(date == max(date))
 ```
 
-#Table representing the five counties in CA with the most new cases at the most current day
+Table representing the five counties in CA with the most new cases at the most current day
 ```{r message=TRUE, warning=TRUE}
 (most_new_cases = set_up %>% 
   slice_max(NewCases, n = 5) %>% 
@@ -58,8 +54,8 @@ knitr::kable(most_new_cases,
 ```
 
 
-#Table representing the five counties in CA with the most cumulative cases at the most current day
-```{r}
+Table representing the five counties in CA with the most cumulative cases at the most current day
+```{r message=FALSE, warning=FALSE}
 (most_cumul_cases = set_up %>% 
     slice_max(Cumul_Cases, n = 5) %>% 
     select(county, Cumul_Cases))
@@ -72,16 +68,21 @@ knitr::kable(most_cumul_cases,
 ```
 
 
-#Adding population information 
+```{r, include=FALSE}
 library(readxl)
-PopulationEstimates <- read_excel("data/PopulationEstimates.xls", skip = 2) %>% 
+
+library(formattable)
+```
+
+Adding population information 
+```{r message=FALSE, warning=FALSE}
+PopulationEstimates <- read_excel("../data/PopulationEstimates.xls", skip = 2) %>% 
   dplyr::select(fips = FIPStxt, state = State, county= Area_Name, pop_2019 = POP_ESTIMATE_2019)
 
-install.packages("formattable")
-library(formattable)
+```
 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 
 pop = PopulationEstimates %>% 
   dplyr::right_join(covid, by = "fips") %>% 
@@ -94,8 +95,8 @@ pop = PopulationEstimates %>%
 
 ```
 
-#Table representing the five counties in CA with the most new cases per capita at the most current day
-```{r}
+Table representing the five counties in CA with the most new cases per capita at the most current day
+```{r message=FALSE, warning=FALSE}
 (most_new_cases_per_cap = pop %>% 
     slice_max(new_cases_per_cap, n = 5) %>% 
     select(county.y, new_cases_per_cap))
@@ -107,8 +108,8 @@ knitr::kable(most_new_cases_per_cap,
   kableExtra:: kable_styling("basic", full_width =  TRUE, font_size = NULL)
 ```
 
-#Table representing the five counties in CA with the most cumulative cases per capita at the most current day
-```{r}
+Table representing the five counties in CA with the most cumulative cases per capita at the most current day
+```{r message=FALSE, warning=FALSE}
 (most_cumul_per_cap = pop %>% 
     slice_max(cumul_cases_per_cap, n = 5) %>% 
     select(county.y, cumul_cases_per_cap))
@@ -120,8 +121,8 @@ knitr::kable(most_cumul_per_cap,
   kableExtra:: kable_styling("basic", full_width =  TRUE, font_size = NULL)
 ```
 
-#total number of new cases in the last 14 days per 100,000 people
-```{r}
+Total number of new cases in the last 14 days per 100,000 people
+```{r message=FALSE, warning=FALSE}
 
 last_14_days = covid %>% 
   right_join(PopulationEstimates, by = "fips") %>% 
@@ -131,12 +132,13 @@ last_14_days = covid %>%
   filter(new_cases_per_cap <= 100) %>% 
   ungroup()
 ```
-# As of 8/17/2020, there are a total of 14 safe counties in California. This means they comply with the California Department of Public Health’s criteria of having less than 100 new cases per 100,000 residents over the past 14 days.
+As of 8/17/2020, there are a total of 14 safe counties in California. This means they comply with the California Department of Public Health’s criteria of having less than 100 new cases per 100,000 residents over the past 14 days.
 
-Question 2
 
-# To get the number of daily new cases and the 7-day rolling mean of the California, New York, Florida, and Lousiana 
-```{r}
+# Question 2
+
+The number of daily new cases and the 7-day rolling mean of the California, New York, Florida, and Lousiana 
+```{r message=FALSE, warning=FALSE}
  
 four_states = covid %>% 
   filter (state %in% c("California", "Louisiana", "New York", "Florida")) %>% 
@@ -158,8 +160,8 @@ four_states = covid %>%
   theme(legend.position = 'NA')
 ```
 
-#To get the number of daily new cases per capita and the 7-day rolling mean of the California, New York, Florida, and Lousiana.
-```{r}
+To get the number of daily new cases per capita and the 7-day rolling mean of the California, New York, Florida, and Lousiana.
+```{r message=FALSE, warning=FALSE}
 cap_state= PopulationEstimates %>% 
   select(state, pop_2019) %>% 
   right_join(four_states, by = "state") %>% 
@@ -175,8 +177,8 @@ ggplot(cap_state, aes(x=date)) +
   theme(legend.position = 'NA')
 
 ```  
-  
-#The number of daily, new cases at the state level can be misleading since it doesn't take into consideration the state's population. Once population is integrated into the number of cases, it is expect for data to reflect a more accurate representation of which out of the four states (CA, LA, NY, FL) has been affected more by CPVID. 
+
+The number of daily, new cases at the state level can be misleading since it doesn't take into consideration the state's population. Once population is integrated into the number of cases, it is expect for data to reflect a more accurate representation of which out of the four states (CA, LA, NY, FL) has been affected more by COVID. 
 
             
   
