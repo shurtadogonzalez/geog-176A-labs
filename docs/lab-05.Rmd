@@ -1,13 +1,13 @@
 ---
 title: "Geography 176A"
-author: "[Stephanie Hurtado] (https://github.com/shurtadogonzalez/shurtadogonzalez.github.io)"
+author: "[Stephanie Hurtado](https://github.com/shurtadogonzalez/shurtadogonzalez.github.io)"
 subtitle: 'Lab 05: Rasters & Remote Sensing'
 output:
   html_document:
     theme: journal
 ---
 
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 library(raster) 
 library(tidyverse) 
 library(getlandsat) 
@@ -24,8 +24,8 @@ data = ("../data/uscities.csv")
 us_cities = read_csv(data)
 ```
 
-Question 1
-```{r}
+## Question 1
+```{r message=FALSE, warning=FALSE}
 palo_aoi = us_cities %>% 
   st_as_sf(coords = c("lng", "lat"), crs= 4326) %>% 
   filter(city %in% "Palo") %>% 
@@ -36,12 +36,12 @@ palo_aoi = us_cities %>%
   st_as_sf()
 ```
 
-Question 2
+## Question 2
 
-2.1 was done in lab 5's RScript 
+### 2.1 was done in lab 5's RScript 
 
-2.2
-```{r message=FALSE} 
+### 2.2
+```{r message=FALSE, warning=FALSE}
 
 data =read_csv("../data/palo-flood-scene.csv")
 
@@ -51,7 +51,7 @@ files = lsat_scene_files(data$download_url) %>%
   pull(file)
 ```
 
-2.3
+### 2.3
 ```{r message=FALSE, warning=FALSE}
 st = sapply(files, lsat_image)
   
@@ -70,16 +70,17 @@ There are 7,811 rows, 7,681 columns, about 6 million cells and 6 layers. The CRS
 Once the landsat stack was cropped there are fewer rows columns and layers: 340, 346 and 117,640 respectively. The CRS in this case stayed the same. 
 
 
-Question 3
+## Question 3
 
-3.1
+### 3.1
 ```{r}
 
 names(r) <- c("coastal", "blue", "green","red","NIR","SWIR1")
 ```
 
-```{r}
-#3.2
+### 3.2
+```{r message=FALSE, warning=FALSE}
+
 plotRGB(r, r=4, g=3, b=2)
 
 plotRGB(r, r=4, g=3, b=2, stretch = "lin")
@@ -94,9 +95,11 @@ plotRGB(r, r=5, g=4, b=3, stretch = "hist")
 
 The purpose of applying a color stretch is there is a greater contrast to the  spatial images. The linear stretch allow one to see figures more clearly then with the histogram stretch. The way this images are represented goes back to how the values for the pixels are represented.
 
-Question 4
-```{r}
-#4.1:Raster Algebra 
+## Question 4
+
+### 4.1:Raster Algebra 
+```{r message=FALSE, warning=FALSE}
+
 
 #Create 5 new rasters using the formulas for NDVI, NDWI, MNDWI, WRI and SWI
 
@@ -128,9 +131,9 @@ plot(raster_stack, col = palette(256))
 For the NDVI index there an emphasis on looking at vegetation. Therefore, areas with a red color have higher vegetation while blue represents water. The NDWI index deals more with plant water content which is more focused on the NIR and SWIR1 bands. MNDWI is similar to NDWI in that it focuses on water, yet the bands in interest are that of the green and SWIR1 ones. WRI index is focused on the green, red , NIR and SWIR1. Anywhere in the image that has a value greater than 1 is an indication of water. The SWI index looks at the blue and SWIR1 bands. Water in this image is represent by the color blue. 
 
 
-4.2: Raster Threshold 
+### 4.2: Raster Threshold 
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 
 threshold1 = function(x){ifelse(x <= 0,1,NA)}
 
@@ -147,20 +150,21 @@ flood3 = calc(mndwi,threshold2)
 flood4 = calc(wri, threshold3)
 flood5 = calc(swi, threshold4)
 
-five_floods <- stack(flood1, flood2, flood3, flood4, flood5) %>%
+floods = stack(flood1, flood2, flood3, flood4, flood5) %>% 
   setNames(c("NDVI", "NDWI", "MNDWI", "WRI", "SWI"))
 
-plot(five_floods, col = "blue")
+plot(floods, col = "blue")
 
 ```
-Question 5 
+## Question 5 
 
-5.1
+### 5.1
 ```{r}
 set.seed(09082020)
+dim(r)
 ```
 
-5.2
+### 5.2
 ```{r}
 v = getValues(r)
 dim(v)
@@ -172,8 +176,7 @@ There are 117,640 cells and 6 layers within the stacked raster.
 idx = which(!is.na(v))
 v = na.omit(v)
 
-vs = scale(v)
-ex = kmeans(vs, 12, iter.max = 100)
+ex = kmeans(v, 12, iter.max = 100)
  
 kmeans_raster = r$coastal
 values(kmeans_raster) = NA
@@ -182,24 +185,64 @@ kmeans_raster[idx] <- ex$cluster
 plot(kmeans_raster)
 ```
 
-5.3
-```{r}
-table_val = table(values(flood2), values(kmeans_raster))
+### 5.3
+```{r message=FALSE, warning=FALSE}
+table_val = table(values(flood1), values(kmeans_raster))
 
+kmeans_raster[kmeans_raster != which.max(table_val)] = 0
+kmeans_raster[kmeans_raster != 0] = 1
 
+kmeans_raster = kmeans_raster %>%
+  setNames(c("Kmeans"))
 
-threshold5 = function(x){ifelse(x != which.max(table_val[2,]),0,1)}
+c_raster = raster::addLayer(floods, kmeans_raster)
 
-
-#new_raster = calc(kmeans_raster, threshold5)
- 
-c_raster = raster::addLayer(five_floods, kmeans_raster)
-
-plot(c_raster)
+plot(c_raster, col= "blue")
                                     
+```
 
+## Question 6
+
+```{r message=FALSE, warning=FALSE}
+NDVI_cells<- flood1 %>% 
+cellStats(sum)*90
+
+NDWI_cells<- flood2 %>% 
+  cellStats(sum)*90
+
+MNDWI_cells<- flood3 %>% 
+  cellStats(sum)*90
+
+WRI_cells<- flood4%>% 
+  cellStats(sum)*90
+
+SWI_cells<- flood5 %>% 
+  cellStats(sum)*90
+
+Kmeans_cells<- kmeans_raster %>% 
+  cellStats(sum)*90
+
+all_counts = data.frame(NDVI_cells, NDWI_cells, MNDWI_cells, WRI_cells, SWI_cells, Kmeans_cells)
+
+
+knitr::kable(all_counts,
+             caption = "Flood Cell Counts and Areas (m^2)", 
+             col.names = c("NDVI","NDWI", "MNDWI", "WRI", "SWI", "Kmeans" ),
+             format.args = list(big.mark = ",")) %>%
+  kableExtra::kable_styling("striped", full_width = TRUE, font_size = 14)
+```
+
+```{r message=FALSE, warning=FALSE}
+
+stack_sum = calc(c_raster, fun = sum)
+
+plot(stack_sum, col = blues9)
+```
+```{r message=FALSE, warning=FALSE}
+
+stack_sum[stack_sum == 0]= NA
+mapview(stack_sum)
 
 ```
 
-Question 6
-
+Some of the values do not appear as whole or even numbers for the reason that leaflet only uses geographic coordinates in order to project the raster data.
