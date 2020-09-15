@@ -122,6 +122,9 @@ last_14_days = covid %>%
 view(last_14_days)
 table(last_14_days$county.x)
 
+#As of 8/17/2020, there are a total of 14 safe counties in California. This means they comply with the California Department of Public Health’s criteria of having less than 100 new cases per 100,000 residents over the past 14 days.
+
+
 # Question 2 
 four_states = covid %>% 
   filter (state %in% c("California", "Louisiana", "New York", "Florida")) %>% 
@@ -143,26 +146,21 @@ four_states = covid %>%
   theme_light() +
   theme(legend.position = 'NA')
 
-  
-
 cap_state= PopulationEstimates %>% 
-  filter (state %in% c("California", "Louisiana", "New York", "Florida")) %>% 
-  select(county, pop_2019) %>% 
-  right_join(four_states, by = c("county" = "state")) %>% 
-  summarize(state_per_cap = sum(cases - lag(cases), na.rm = TRUE) / pop_2019), seven_day_roll= zoo::rollmean(daily_new_cases, 7, fill= NA, align= 'right') 
+  select(state, pop_2019) %>% 
+  right_join(four_states, by = "state") %>% 
+  mutate(state_per_cap = ((cases - lag(cases))/ pop_2019), 
+        seven_day_roll= zoo::rollmean(daily_new_cases, 7, fill= NA, align= 'right'))
+  
 
-summarize(new_cases_per_cap = sum(cases - lag(cases), na.rm = TRUE) / (max(pop_2019) / 100000)) %>% 
-
-  ggplot( cap_state, aes(x = date)) +
-  geom_col(aes(y= state_per_cap, col= "state")) +
-  geom_line(aes(y= seven_day_roll, col= "darkred", size= 1)) +
-  labs(title = "States' New Covid Cases Per Capita", x= "Date", y= "Cases per Capita", 
-       color = "", caption = "Lab 02", subtitle = "COVID-19 Data: NY Times" ) +
+ggplot(cap_state, aes(x=date)) +
+  geom_col(aes(y= state_per_cap), col= NA, fill= "#F5B8B5") +
+  geom_line(aes(y= seven_day_roll), col= "darkred", size= 1) +
   theme_light() +
-  facet_wrap(~state, scale = "free_y") +
+  labs(title = "States' New Covid Cases Per Capita", x= "", y= "",  caption = "Lab 02", subtitle = "COVID-19 Data: NY Times" ) +
   theme(legend.position = 'NA')
-  
-  
+
+
   
   
 

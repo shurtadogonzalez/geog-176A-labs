@@ -367,7 +367,6 @@ most_pop <- border_zone %>%
   head(10)
 
 
-
 qbz_plot = ggplot() +
   geom_sf(data = cb_u_ml) +
   geom_sf(data = locations, col = 'grey', size = .1) +

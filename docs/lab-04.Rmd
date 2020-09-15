@@ -23,7 +23,7 @@ library(readxl)
 ```
 
 
-#Question 1
+# Question 1
 
 ```{r}
 
@@ -136,7 +136,7 @@ plot_tess(conus, "Original Coverage")
 ```
 
 
-#Question 2
+# Question 2
 ```{r}
 #2.1
 tess_area <- function(data, title){
@@ -246,8 +246,7 @@ plot_pip(hex_jd, "Hexagonal Pip")
 plot_pip(og_jd, "Original Pip")
 ```
 
-#3.6
-Comment on the influence of the tessellated surface in the visualization of point counts. How does this related to the MAUP problem. Moving forward you will only use one tessellation, which will you chose and why?
+3.6: Comment on the influence of the tessellated surface in the visualization of point counts. How does this related to the MAUP problem. Moving forward you will only use one tessellation, which will you chose and why?
 
 Depending on the tessellation surface it will either make it easier or harder to get a visualization of the point counts in terms of the dams in the US. For this reason I choose to use the Voroni tessellation from here on forward. The Voroni feature help you visually see where there is a higher coverage of dams within US counties than the rest of the tessellations.
 
@@ -319,8 +318,7 @@ plot_pip(fish_wildlife_tess, "Fish and Wildlife Dams")+
 ```
 
 
-#4.3
-Comment of geographic distribution of dams you found. Does it make sense? How might the tessellation you chose impact your findings? How does the distribution of dams coincide with other geographic factors such as river systems, climate, ect?
+4.3: Comment of geographic distribution of dams you found. Does it make sense? How might the tessellation you chose impact your findings? How does the distribution of dams coincide with other geographic factors such as river systems, climate, ect?
 
 From the dam purposes that I choose, most of their distribution is understandable given the location in which they are seen. For example, flood control dams are mostly seen within counties close to the Mississippi River. Also, based on the bar graph presented in the lab instruction, it was seen that Recreational Dams were the largest purpose for a dam in the US. Even though the counties look smaller than those to the west of the country, it is possible to see their distribution along with the dam count within a given county.
 
