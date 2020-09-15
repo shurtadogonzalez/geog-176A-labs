@@ -1,13 +1,13 @@
 ---
 title: "Geography 176A"
-author: "[Stephanie Hurtado] (https://github.com/shurtadogonzalez/shurtadogonzalez.github.io)"
+author: "[Stephanie Hurtado](https://github.com/shurtadogonzalez/shurtadogonzalez.github.io)"
 subtitle: 'Lab 04: Tesselations, Point-in-Polygon'
 output:
   html_document:
     theme: journal
 ---
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 library(tidyverse)
 library(sf)
 library(units)
